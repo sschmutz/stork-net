@@ -1,0 +1,105 @@
+---
+title: "Stork ne(s)t"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r load_packages, message=FALSE}
+library(fs)
+library(tidyverse)
+library(lubridate)
+library(hms)
+library(here)
+```
+
+# Select samples for labeling
+The goal is to randomly select 200 sample images for manual labeling which are then used to create a deep neural network which classifies if a stork is present or not.  
+The ratio of stork present/absent should be around 50:50. If we're far of this, we need to sample more at a later timepoint.
+
+*Note: Now is that later timepoint and it was decided to sample and label 400 samples instead.*
+
+## Read filenames from downloaded images (2019 only)
+
+```{r list_filenames, message=FALSE}
+# For some reason list all files from R directly resulted in a weird bug. It was therefore
+# decided to do this part using a shell script instead.
+
+files_2019 <-
+  # read the list of files from 2019 which was created using the shell script "image-list.sh"
+  read_csv(here("images", "2019", "files_2019.csv"), col_names = "filename") %>%
+  filter(filename != "files_2019.csv") %>%
+  # remove .jpg extension
+  mutate(datetime = str_sub(filename, end = -5)) %>%
+  # split into date and time and format properly
+  separate(datetime, into = c("date", "time"), sep = "_") %>%
+  mutate(date = ymd(date),
+         time = as_hms(paste0(str_replace(time, "-", ":"), ":00")))
+```
+
+There are `r length(unique(files_2019$filename))` images downloaded which range from `r min(files_2019$date)` to `r max(files_2019$date)`.
+
+## Distribution of images over time
+
+```{r statistics}
+files_2019 %>%
+  mutate(month = month(date, label = TRUE)) %>%
+  count(month) %>%
+  ggplot(aes(x = month, y = n)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL,
+       title = "How many images are there per month?")
+```
+
+It looks like there are no big gaps in time where there are missing images.
+
+```{r missing_images}
+all_days <-
+  seq(from = c(ISOdate(2019,1,1)), to = c(ISOdate(2019,8,31)), by = "day") %>%
+  as.Date()
+
+all_timepoints <-
+  crossing(date = all_days,
+           h = seq(from = 0, to = 23),
+           m = seq(from = 0, to = 55, by = 5),
+           s = 0) %>%
+  transmute(date = date,
+            time = as_hms(paste0(h, ":", m, ":", s))) %>%
+  # remove entries from 2019-03-31_02-00 until 2019-03-31_02-55
+  # which are missing due to daylight-saving time.
+  filter(!(date == "2019-03-31" & hour(time) == 2))
+
+missing_timepoints <-
+  anti_join(all_timepoints, files_2019, by = c("date", "time"))
+```
+
+We can check exactly which ones are missing. During that time period of `r length(all_timepoints$date)` possible timepoints (image each 5min) only `r length(missing_timepoints$date)` are missing.
+
+## Sampling images for labeling
+For the first round of sampling and labeling, only colored images were chosen. Therefore images captured between 9am and 4pm were filtered before randomly selecting 400 of those.
+
+```{r sampling}
+# Very important to set a seed in order to reproduce the sampling
+set.seed(20200421)
+
+files_2019_sampled <-
+  files_2019 %>%
+  filter(time >= as_hms("09:00:00"),
+         time <= as_hms("16:00:00")) %>%
+  sample_n(400) %>%
+  arrange(filename)
+
+invisible(file.copy(from = here("images", "2019", files_2019_sampled$filename),
+                    to = here("images", "2019_sampled", files_2019_sampled$filename)))
+
+write_csv(files_2019_sampled, path = here("images", "2019_sampled", "files_2019_sampled.csv"))
+
+files_2019_sampled %>%
+  mutate(month = month(date, label = TRUE)) %>%
+  count(month) %>%
+  ggplot(aes(x = month, y = n)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL,
+       title = "How many images (sampled) are there per month?")
+```
+
