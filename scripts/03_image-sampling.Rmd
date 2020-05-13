@@ -14,10 +14,7 @@ library(here)
 ```
 
 # Select samples for labeling
-The goal is to randomly select 200 sample images for manual labeling which are then used to create a deep neural network which classifies if a stork is present or not.  
-The ratio of stork present/absent should be around 50:50. If we're far of this, we need to sample more at a later timepoint.
-
-*Note: Now is that later timepoint and it was decided to sample and label 400 samples instead.*
+The goal is to randomly select 1000 sample images for manual labeling which are then used to create a deep neural network which classifies how many storks are present.  
 
 ## Read filenames from downloaded images (2019 only)
 
@@ -78,21 +75,22 @@ We can check exactly which ones are missing. During that time period of `r lengt
 ## Sampling images for labeling
 For the first round of sampling and labeling, only colored images were chosen. Therefore images captured between 9am and 4pm were filtered before randomly selecting 400 of those.
 
-```{r sampling}
+```{r sampling1}
 # Very important to set a seed in order to reproduce the sampling
 set.seed(20200421)
 
 files_2019_sampled <-
   files_2019 %>%
-  filter(time >= as_hms("09:00:00"),
-         time <= as_hms("16:00:00")) %>%
-  sample_n(400) %>%
+  # this time, no time-constraint is applied to also get images which were taken at night
+  #filter(time >= as_hms("09:00:00"),
+  #       time <= as_hms("16:00:00")) %>%
+  sample_n(1000) %>%
   arrange(filename)
 
 invisible(file.copy(from = here("images", "2019", files_2019_sampled$filename),
                     to = here("images", "2019_sampled", files_2019_sampled$filename)))
 
-write_csv(files_2019_sampled, path = here("images", "2019_sampled", "files_2019_sampled.csv"))
+write_csv(files_2019_sampled, path = here("images", "files_2019_sampled.csv"))
 
 files_2019_sampled %>%
   mutate(month = month(date, label = TRUE)) %>%
@@ -103,3 +101,29 @@ files_2019_sampled %>%
        title = "How many images (sampled) are there per month?")
 ```
 
+```{r sampling2}
+# Very important to set a seed in order to reproduce the sampling
+set.seed(20200421)
+
+files_2019_sampled_2 <-
+  files_2019 %>%
+  anti_join(files_2019_sampled, by = c("filename", "date", "time")) %>% # remove previously sampled images
+  # this time, no time-constraint is applied to also get images which were taken at night
+  #filter(time >= as_hms("09:00:00"),
+  #       time <= as_hms("16:00:00")) %>%
+  sample_n(2000) %>%
+  arrange(filename)
+
+invisible(file.copy(from = here("images", "2019", files_2019_sampled_2$filename),
+                    to = here("images", "2019_sampled_2", files_2019_sampled_2$filename)))
+
+write_csv(files_2019_sampled_2, path = here("images", "files_2019_sampled_2.csv"))
+
+files_2019_sampled_2 %>%
+  mutate(month = month(date, label = TRUE)) %>%
+  count(month) %>%
+  ggplot(aes(x = month, y = n)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL,
+       title = "How many images (sampled) are there per month?")
+```
