@@ -1,0 +1,54 @@
+---
+title: "Stork net - Labeled images"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+
+library(tidyverse)
+library(lubridate)
+library(here)
+```
+
+```{r read_data}
+files_2019_sampled_labeled <-
+  read_csv(here("images", "files_2019_sampled_labeled.csv")) %>%
+  mutate(date = dmy(date))
+```
+
+
+## Plotting overall numbers
+
+### Class imbalance?
+Is there any class imbalance? Categories 0 to 2 are about equal, but notably less in 3. We'll see if this is an issue.
+
+```{r overall}
+
+files_2019_sampled_labeled %>%
+  ggplot(aes(x = stork_number)) +
+  geom_bar()
+
+```
+
+### Trend over time?
+Is there a structure of stork number over time? As expected, there is.
+
+```{r}
+files_2019_sampled_labeled %>%
+  ggplot(aes(x = date)) +
+  geom_histogram() +
+  facet_grid(stork_number~.)
+```
+
+
+### Trend over time-of-day?
+At what time are how many storks present? There's some structure, but consider that this is the sum over all dates.
+
+```{r}
+files_2019_sampled_labeled %>%
+  ggplot(aes(x = time)) +
+  geom_histogram() +
+  facet_grid(stork_number~.)
+```
+
