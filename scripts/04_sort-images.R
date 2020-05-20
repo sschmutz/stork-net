@@ -94,9 +94,26 @@ validation_3_stork <-
          validation == 1,
          stork_number == 3)
 
-test <-
+
+test_0_stork <-
   labeled %>%
-  filter(train == 0)
+  filter(train == 0,
+         stork_number == 0)
+
+test_1_stork <-
+  labeled %>%
+  filter(train == 0,
+         stork_number == 1)
+
+test_2_stork <-
+  labeled %>%
+  filter(train == 0,
+         stork_number == 2)
+
+test_3_stork <-
+  labeled %>%
+  filter(train == 0,
+         stork_number == 3)
 
 
 # copy the files into the respective folders (the original images were kept)
@@ -130,7 +147,16 @@ file.copy(from = here("images", "2019_sampled", validation_3_stork$filename),
 
 
 # test
-file.copy(from = here("images", "2019_sampled", test$filename),
-          to = here("images", "2019_test", test$filename))
+file.copy(from = here("images", "2019_sampled", test_0_stork$filename),
+          to = here("images", "2019_test", "0_stork", test_0_stork$filename))
+
+file.copy(from = here("images", "2019_sampled", test_1_stork$filename),
+          to = here("images", "2019_test", "1_stork", test_1_stork$filename))
+
+file.copy(from = here("images", "2019_sampled", test_2_stork$filename),
+          to = here("images", "2019_test", "2_stork", test_2_stork$filename))
+
+file.copy(from = here("images", "2019_sampled", test_3_stork$filename),
+          to = here("images", "2019_test", "3_stork", test_3_stork$filename))
 
 
