@@ -2,4 +2,4 @@
 .DS_Store
 .ipynb_checkpoints
 scripts/stork-net-dataset/
-scripts/stork_net_v2.h5
+scripts/*.h5
